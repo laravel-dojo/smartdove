@@ -1,0 +1,14 @@
+{
+    "name": "meditate/smartdove",
+    "description": "SMARTDOVE PHP/Laravel SDK",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Shengyou Fan",
+            "email": "shengyoufan@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
