@@ -1,1 +1,7 @@
-/vendor/
+composer.lock
+/vendor
+
+/build
+/bin
+
+/.idea
