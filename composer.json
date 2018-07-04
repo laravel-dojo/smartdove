@@ -59,5 +59,12 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "optimize-autoloader": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Meditate\\SmartDove\\SmartDoveServiceProvider"
+            ]
+        }
     }
 }
