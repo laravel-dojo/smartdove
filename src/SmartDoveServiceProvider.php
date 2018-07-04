@@ -16,6 +16,8 @@ class SmartDoveServiceProvider extends MailServiceProvider
      */
     public function register()
     {
+        parent::register();
+        
         $this->app->singleton(Client::class, function ($app) {
             $token = $this->app['config']->get('services.smartdove.sms.token', '');
 
