@@ -4,4 +4,6 @@ composer.lock
 /build
 /bin
 
+/tests/.env
+
 /.idea
