@@ -12,14 +12,13 @@ class TransportManager extends IlluminateTransportManager
      *
      * @return \Meditate\SmartDove\Mail\Transport\SmartDoveTransport
      */
-    protected function createMailgunDriver()
+    protected function createSmartdoveDriver()
     {
         $config = $this->app['config']->get('services.smartdove.mail', []);
 
         return new SmartDoveTransport(
             $this->guzzle($config),
-            $config['secret'],
-            $config['domain']
+            $config['token']
         );
     }
 }

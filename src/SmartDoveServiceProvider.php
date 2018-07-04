@@ -2,13 +2,12 @@
 
 namespace Meditate\SmartDove;
 
-use Illuminate\Support\Arr;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Mail\MailServiceProvider;
 use Meditate\SmartDove\Mail\TransportManager;
 
-class SmartDoveServiceProvider extends ServiceProvider
+class SmartDoveServiceProvider extends MailServiceProvider
 {
-    public function register()
+    public function registerSwiftTransport()
     {
         $this->app->singleton('swift.transport', function ($app) {
             return new TransportManager($app);

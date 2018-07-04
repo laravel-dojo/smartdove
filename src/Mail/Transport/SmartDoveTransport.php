@@ -2,6 +2,7 @@
 
 namespace Meditate\SmartDove\Mail\Transport;
 
+use Illuminate\Mail\Transport\Transport;
 use Swift_Mime_SimpleMessage;
 use GuzzleHttp\ClientInterface;
 
@@ -15,39 +16,23 @@ class SmartDoveTransport extends Transport
     protected $client;
 
     /**
-     * The Mailgun API key.
+     * The Mailgun API token.
      *
      * @var string
      */
-    protected $key;
-
-    /**
-     * The Mailgun domain.
-     *
-     * @var string
-     */
-    protected $domain;
-
-    /**
-     * The Mailgun API end-point.
-     *
-     * @var string
-     */
-    protected $url;
+    protected $token;
 
     /**
      * Create a new Mailgun transport instance.
      *
      * @param  \GuzzleHttp\ClientInterface  $client
-     * @param  string  $key
-     * @param  string  $domain
+     * @param  string  $token
      * @return void
      */
-    public function __construct(ClientInterface $client, $key, $domain)
+    public function __construct(ClientInterface $client, $token)
     {
-        $this->key = $key;
+        $this->token = $token;
         $this->client = $client;
-        $this->setDomain($domain);
     }
 
     /**
@@ -57,11 +42,19 @@ class SmartDoveTransport extends Transport
     {
         $this->beforeSendPerformed($message);
 
+        $from = $this->getFrom($message);
+
         $to = $this->getTo($message);
 
         $message->setBcc([]);
 
-        $this->client->post($this->url, $this->payload($message, $to));
+        $message->getHeaders()->addTextHeader(
+            'content-type', 'application/x-www-form-urlencoded'
+        );
+
+        $this->client->post('https://api.smartdove.net/index.php?r=api/SendMail', [
+            'form_params' => $this->payload($message, $from, $to),
+        ]);
 
         $this->sendPerformed($message);
 
@@ -72,27 +65,40 @@ class SmartDoveTransport extends Transport
      * Get the HTTP payload for sending the Mailgun message.
      *
      * @param  \Swift_Mime_SimpleMessage  $message
-     * @param  string  $to
+     * @param  array  $from
+     * @param  array  $to
      * @return array
      */
-    protected function payload(Swift_Mime_SimpleMessage $message, $to)
+    protected function payload(Swift_Mime_SimpleMessage $message, $from, $to)
     {
         return [
-            'auth' => [
-                'api',
-                $this->key,
-            ],
-            'multipart' => [
-                [
-                    'name' => 'to',
-                    'contents' => $to,
-                ],
-                [
-                    'name' => 'message',
-                    'contents' => $message->toString(),
-                    'filename' => 'message.mime',
-                ],
-            ],
+            'token' => $this->getToken(),
+            'data' => json_encode([
+                'From' => $from,
+                'To' => $to,
+                'Subject' => $message->getSubject(),
+                'Text' => $message->getBody(),
+                'Attachments' => [],
+            ]),
+        ];
+    }
+
+    /**
+     * Get the "from" payload field for the API request.
+     *
+     * @param  \Swift_Mime_SimpleMessage $message
+     * @return array
+     */
+    protected function getFrom(Swift_Mime_SimpleMessage $message)
+    {
+        $from = $message->getFrom();
+
+        $form_email = key($from);
+        $form_name = $from[$form_email] ?? null;
+
+        return [
+            'Email' => $form_email,
+            'Name' => $form_name,
         ];
     }
 
@@ -100,13 +106,13 @@ class SmartDoveTransport extends Transport
      * Get the "to" payload field for the API request.
      *
      * @param  \Swift_Mime_SimpleMessage  $message
-     * @return string
+     * @return array
      */
     protected function getTo(Swift_Mime_SimpleMessage $message)
     {
         return collect($this->allContacts($message))->map(function ($display, $address) {
-            return $display ? $display." <{$address}>" : $address;
-        })->values()->implode(',');
+            return ['Email' => $address];
+        })->values()->toArray();
     }
 
     /**
@@ -123,46 +129,23 @@ class SmartDoveTransport extends Transport
     }
 
     /**
-     * Get the API key being used by the transport.
+     * Get the API token being used by the transport.
      *
      * @return string
      */
-    public function getKey()
+    public function getToken()
     {
-        return $this->key;
+        return $this->token;
     }
 
     /**
-     * Set the API key being used by the transport.
+     * Set the API token being used by the transport.
      *
-     * @param  string  $key
+     * @param  string  $token
      * @return string
      */
-    public function setKey($key)
+    public function setToken($token)
     {
-        return $this->key = $key;
-    }
-
-    /**
-     * Get the domain being used by the transport.
-     *
-     * @return string
-     */
-    public function getDomain()
-    {
-        return $this->domain;
-    }
-
-    /**
-     * Set the domain being used by the transport.
-     *
-     * @param  string  $domain
-     * @return string
-     */
-    public function setDomain($domain)
-    {
-        $this->url = 'https://api.mailgun.net/v3/'.$domain.'/messages.mime';
-
-        return $this->domain = $domain;
+        return $this->token = $token;
     }
 }

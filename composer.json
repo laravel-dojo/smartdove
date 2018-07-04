@@ -7,6 +7,10 @@
         {
             "name": "Shengyou Fan",
             "email": "shengyoufan@gmail.com"
+        },
+        {
+            "name": "Wei-Cheng Shi",
+            "email": "tentail10@gmail.com"
         }
     ],
     "minimum-stability": "stable",
