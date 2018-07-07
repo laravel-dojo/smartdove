@@ -77,8 +77,7 @@ class SmartDoveTransport extends Transport
                 'From' => $from,
                 'To' => $to,
                 'Subject' => $message->getSubject(),
-                'Text' => $message->getBody(),
-                'Attachments' => [],
+                'HTML' => $message->getBody(),
             ]),
         ];
     }
