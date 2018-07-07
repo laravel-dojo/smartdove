@@ -17,6 +17,11 @@ class Client
     /**
      * @var string
      */
+    protected $batchApiEndpoint = 'https://api.smartdove.net/index.php?r=smsApi/SendMultiSms';
+
+    /**
+     * @var string
+     */
     protected $token;
 
     /**
@@ -30,9 +35,9 @@ class Client
     protected $messageFactory;
 
     /**
-     * @var string
+     * @var array
      */
-    protected $to;
+    protected $receivers = [];
 
     /**
      * @var string
@@ -52,12 +57,12 @@ class Client
     }
 
     /**
-     * @param string $to
+     * @param mixed $to
      * @return Client
      */
-    public function to(string $to): Client
+    public function to($to): Client
     {
-        $this->to = $to;
+        $this->receivers = array_merge($this->receivers, is_array($to) ? $to : func_get_args());
 
         return $this;
     }
@@ -79,11 +84,19 @@ class Client
      */
     public function send($params = null): array
     {
+        if (count($this->receivers) > 1 || ! is_null($params)) {
+            $apiEndPoint = $this->batchApiEndpoint;
+            $apiParams = $this->buildBatchParams($params);
+        } else {
+            $apiEndPoint = $this->apiEndpoint;
+            $apiParams = $this->buildParams($params);
+        }
+
         $request = $this->messageFactory->createRequest(
             'POST',
-            $this->apiEndpoint,
+            $apiEndPoint,
             ['Content-Type' => 'application/x-www-form-urlencoded; charset=utf-8'],
-            $this->buildParams($params)
+            $apiParams
         );
 
         $response = $this->httpClient->sendRequest($request);
@@ -99,14 +112,55 @@ class Client
     {
         $config = [
             'token' => $this->token,
-            'phone_number' => $this->to,
+            'phone_number' => $this->receivers[0],
             'content' => $this->text,
-            'campaign_id' => '',
         ];
 
         if (! is_null($params)) {
             $config = array_merge($config, $params);
         }
+
+        return http_build_query($config);
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    private function buildBatchParams(array $params = null): string
+    {
+        $config = [
+            'token' => $this->token,
+        ];
+
+        $data = [];
+        foreach ($this->receivers as $receiver) {
+            $data[] = [
+                'id' => str_random(7),
+                'phone_number' => $receiver,
+                'content' => $this->text,
+            ];
+        }
+
+        if (! is_null($params)) {
+            if (is_array($params['phone_number'])) {
+                foreach ($params['phone_number'] as $number) {
+                    $data[] = [
+                        'id' => str_random(7),
+                        'phone_number' => $number,
+                        'content' => $params['content'],
+                    ];
+                }
+            } else {
+                $data[] = [
+                    'id' => str_random(7),
+                    'phone_number' => $params['phone_number'],
+                    'content' => $params['content'],
+                ];
+            }
+        }
+
+        $config['data'] = json_encode($data);
 
         return http_build_query($config);
     }
