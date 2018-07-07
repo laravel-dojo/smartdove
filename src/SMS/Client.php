@@ -101,6 +101,8 @@ class Client
 
         $response = $this->httpClient->sendRequest($request);
 
+        $this->receivers = [];
+
         return json_decode($response->getBody()->getContents(), true);
     }
 
